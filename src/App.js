@@ -1,42 +1,85 @@
-import React, { Component } from 'react';
-import Subject from "./components/Subject"
-import Toc from "./components/Toc"
-import Content from "./components/Content"
 import './App.css';
+import { useState } from 'react';
 
-class App extends Component {
-    // 어떠한 컴포넌트가 실행될 때, render() 보다 constructor라는 함수가 먼저 실행해서 초기화 담당한다.
-    constructor(props){
-        super(props);
-        this.state = {
-            mode: 'read',
-            subject: {title: 'WEB', sub: 'world wide web!'},
-            welcome: {title: 'Welcome', desc: 'Hello React!!'},
-            contents: [
-                {id: 1, title: 'HTML', desc: 'HTML is for information'},
-                {id: 2, title: 'CSS', desc: 'CSS is for design'},
-                {id: 3, title: 'Javascript', desc: 'Javascript is for interactive'}
-            ]
-        }
+// 함수형 컴포넌트
+function Article(props) {
+  return <article>
+     <h2>{props.title}</h2>
+     {props.body}
+        
+  </article>
+}
+
+function Header(props) {
+  console.log('props',props, props.title);
+  return <header>
+     <h1><a href='/' onClick={(event) =>{
+      event.preventDefault();
+      props.onChangeMode();
+     }}>{props.title}</a></h1>
+  </header>
+}
+
+function Nav(props) {
+  const lis = []
+  for(let i=0; i<props.topics.length; i++){
+    let t = props.topics[i];
+    lis.push(<li key={t.id}>
+      <a id={t.id} href={'/read/'+t.id} onClick={event=> {
+        event.preventDefault();
+        props.onChangeMode(Number(event.target.id));
+      }}>{t.title}</a>
+      </li>)
+  }
+  return <nav>
+     <ol>
+      {lis}
+      </ol>
+  </nav>
+} 
+
+function App() {
+  /* 
+  state의 초기값 0번
+  const _mode = useState('WELCOME');
+  state의 1번
+  const mode = _mode[0];
+  const setMode = _mode[1]; 
+  */
+  const [mode, setMode] = useState('WELCOME');
+  const [id, setId] = useState(null);
+  const topics = [
+   {id: 1, title: 'html', body: 'html is...'},
+   {id: 2, title: 'css', body: 'css is...'},
+   {id: 3, title: 'javascript', body: 'javascript is...'}
+  ]
+  let content = null;
+  if(mode === 'WELCOME') {
+    content = <Article title="Welcome" body="Hello, Web"></Article>
+  } else if(mode === 'READ') {
+    let title, body = null;
+    for(let i=0; i<topics.length; i++){
+      if (topics[i].id === id) {
+        title = topics[i].title;
+        body = topics[i].body;
+      }
     }
-    render() {
-        console.log('App render');
-        var _title, _desc = null;
-        if(this.state.mode === "welcome"){
-            _title = this.state.welcome.title;
-            _desc = this.state.welcome.desc;
-        } else if(this.state.mode === "read"){
-            _title = this.state.contents[0].title;
-            _desc = this.state.contents[0].desc;
-        }
-        return (
-            <div className="App">
-                <Subject title={this.state.subject.title} sub={this.state.subject.sub}></Subject>
-                <Toc data={this.state.contents}></Toc>
-                <Content title={_title} desc={_desc}></Content>
-            </div>
-        );
-    }
+    content = <Article title={title} body={body}></Article>
+  }
+  return (
+    <div>
+    <Header title="REACT" onChangeMode={() => {
+      setMode ('WELCOME');
+    }}></Header>
+    <Header></Header>
+    <Header></Header>
+    <Nav topics={topics} onChangeMode={(id)=>{
+      setMode ('READ');
+      setId(id);
+    }}></Nav>
+    {content}
+    </div>
+  );
 }
 
 export default App;
