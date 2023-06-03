@@ -1,6 +1,50 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useReducer } from "react";
+import axios from "axios";
+import { call } from "./service/ApiService";
+import Nav from "./component/Nav";
 import CreateArticle from "./component/CreateArticle";
 import UpdateArticle from "./component/UpdateArticle";
+import Timer from "./component/Timer";
+import Student from "./component/Student";
+import { ThemeContext } from "./context/ThemeContext";
+
+const reducer = (state, action) => {
+  switch (action.type) {
+    case "add-student":
+      const name = action.payload.name;
+      const newStudent = {
+        id: Date.now(),
+        name,
+        isHere: false,
+      };
+      return {
+        count: state.count + 1,
+        students: [...state.students, newStudent],
+      };
+    case "del-student":
+      return {
+        count: state.count - 1,
+        students: state.students.filter((item) => item.id !== action.payload.id),
+      };
+    case "mark-student":
+      return {
+        count: state.count,
+        students: state.students.map((item) => {
+          if (item.id == action.payload.id) {
+            return { ...item, isHere: !item.isHere };
+          }
+          return item;
+        }),
+      };
+    default:
+      return state;
+  }
+};
+
+const initState = {
+  count: 0,
+  students: [],
+};
 
 function App() {
   const MODE_DEFAULT = "DEFAULT";
@@ -77,8 +121,61 @@ function App() {
     setMode(MODE_DEFAULT);
   };
 
+  const [showTimer, setShowTiemr] = useState(false);
+
+  const [posts, setPosts] = useState([]);
+  // const api_url = "https://naveropenapi.apigw.ntruss.com/text-summary/v1/summarize";
+  // useEffect() : 랜더링 떄마다 랜더 완 직후 콜백함수 () => {} 가 실행됨.
+  // useEffect(() => {
+  // 1.
+  //   axios({
+  //     method: "GET",
+  //     url: api_url,
+  //   }).then((response) => setPosts(response)); // const posts = response;
+  // 2.
+  // axios.get(api_url).then((response) => setPosts(response.data));
+  // });
+  // 3.
+  // useEffect(async () => {
+  //   // try {
+  //   const response = await axios.get(api_url);
+  //   setPosts(response.data);
+  //   // } catch (error) {
+  //   //   console.log("error");
+  //   // }
+  // });
+  // 4.
+  useEffect(() => {
+    call("/", "GET", null).then((response) => {
+      setPosts(response.data);
+    });
+  }, []);
+
+  const [isDark, setIsDark] = useState(false);
+
+  const [name, setName] = useState("");
+  const [studentsInfo, dispatch] = useReducer(reducer, initState);
+
   return (
     <div>
+      <ThemeContext.Provider value={{ isDark, setIsDark }}>
+        <header>
+          <p style={{ color: isDark ? "black" : "yellow" }}>
+            /* axios info : type is {typeof posts} */
+          </p>
+          <p style={{ color: isDark ? "black" : "blue" }}>
+            /* axios info : length is {posts.length} */
+          </p>
+          <Nav />
+          <ul>
+            {posts.map((post) => (
+              <li key={post.id}>{posts.title}</li>
+            ))}
+          </ul>
+        </header>
+      </ThemeContext.Provider>
+      <button onClick={() => setShowTiemr(!showTimer)}>timer</button>
+      {showTimer && <Timer />}
       <h1 onClick={() => setMode(MODE_DEFAULT)}>REACT</h1>
       {mode === MODE_DEFAULT && (
         <div>
@@ -99,6 +196,32 @@ function App() {
       {mode === MODE_UPDATE && (
         <UpdateArticle article={targetArticle} onUpdate={handleUpdate} onCancel={handleCancel} />
       )}
+      <p>총 학생 수: {studentsInfo.count}</p>
+      <input
+        type='text'
+        placeholder='출석부 이름 넣기'
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      ></input>
+      <button
+        onClick={() => {
+          dispatch({ type: "add-student", payload: { name } });
+          setName("");
+        }}
+      >
+        추가
+      </button>
+      {studentsInfo.students.map((item) => {
+        return (
+          <Student
+            key={item.id}
+            name={item.name}
+            dispatch={dispatch}
+            id={item.id}
+            isHere={item.isHere}
+          />
+        );
+      })}
     </div>
   );
 }
